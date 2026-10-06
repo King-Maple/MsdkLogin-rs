@@ -153,6 +153,6 @@ Rust 测试覆盖两种渠道的本地 HTTP 流程、认证地址与签名、响
 
 [APK 参数提取 Skill](https://github.com/King-Maple/MsdkLogin-rs/blob/HEAD/skills/extract-msdk-core-params/SKILL.md) 随仓库提供，可用于从本地 APK 分析登录配置。
 
-提取 `msdk_url`、`game_id`、`sdk_key`、`channel_dis`、`package_name`，加上所需渠道的 QQ AppID／签名证书 MD5、微信 AppID；按需核对 SDK 版本。技能说明了资源、DEX/native 初始化位置和 APK 签名证书的定位方法，交付参数来源表及五个核心参数直接传入 `MsdkConfig::builder(...)` 的代码，无需 INI 或环境变量。
+统一脚本 `extract_core_params.py` 提取 `msdk_url`、`game_id`、SDK key 定位状态、`channel_dis`、包名、QQ／微信 AppID、签名证书 MD5，以及 MSDK／QQ SDK 版本。渠道支持 APK Signing Block 的 `0x71717874` 扩展；版本从对应 DEX 静态字段读取。配合 JDK 17+ 和 Android `apksig` JAR 验证签名、解析二进制 Manifest。具体命令与支持范围见 skill。
 
-真实 SDK key 只写入调用项目的本地配置代码，公开报告仅记录定位状态和来源。不同游戏分别取值，缺失或冲突不猜测。辅助 Python 脚本提供可选的公开字段索引，其命令与覆盖范围见技能；完整核心参数按技能流程核实。
+报告记录参数来源、缺失、歧义和冲突；SDK key 始终脱敏，实际接入时按来源在本地读取并传入 Rust 配置。不同应用分别提取参数，地址与 SDK 版本以目标 APK 为准。原 `extract_public_params.py` 保留为可选的公开文本索引。
