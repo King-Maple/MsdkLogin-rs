@@ -210,10 +210,23 @@ def scan_entries(archive, report):
                 for field, value, location in sdk_versions(data):
                     report.add(field, value, name, location)
             else:
-                for number, line in enumerate(data.decode("utf-8-sig").splitlines(), 1):
-                    match = re.match(r"\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$", line)
-                    if match and match[1].upper() in ALIASES:
-                        report.add(ALIASES[match[1].upper()], match[2], name, f"line:{number}")
+                # Keys and assignment syntax are ASCII. Unrelated browser
+                # metadata/comments may use a legacy encoding; only selected
+                # values must decode as UTF-8. NULs indicate a binary or wide
+                # encoding that this scanner cannot safely classify.
+                if b"\0" in data:
+                    raise ValueError("unsupported_config_encoding")
+                for number, line in enumerate(data.removeprefix(b"\xef\xbb\xbf").splitlines(), 1):
+                    match = re.match(rb"\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$", line)
+                    field = ALIASES.get(match[1].decode("ascii").upper()) if match else None
+                    if field:
+                        try:
+                            value = match[2].decode("utf-8")
+                        except UnicodeError:
+                            report.warn("config_value_not_utf8")
+                            report.uncertain((field,), name, f"line:{number}")
+                        else:
+                            report.add(field, value, name, f"line:{number}")
         except (OSError, ValueError, RuntimeError, NotImplementedError, zipfile.BadZipFile, struct.error):
             skipped("dex_unreadable" if dex else "config_unreadable")
 

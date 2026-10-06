@@ -38,7 +38,7 @@ python -B scripts/extract_core_params.py "sample.apk" --apksig-jar "C:/Android/b
 
 `--java` 可指定 JDK 的 `java` 程序，否则从 PATH 查找。脚本直接读 APK 中的文本配置、DEX 静态字段和渠道签名块；随附的 [VerifyApk.java](scripts/VerifyApk.java) 调用 Android `ApkVerifier` 验证签名并解析二进制 Manifest，只有验证通过后才输出签名者证书 MD5。缺少 JAR 或验证失败时包名、证书会保留缺项，继续报告可独立提取的字段，不把它当完整结果。
 
-报告只显示 SDK key 的 `[REDACTED]`、状态与来源；真实值按来源在本地传给调用项目。`core_complete` 表示八项核心/双渠道字段均无缺项、歧义或冲突；两项 SDK 版本还需分别查看。`found` 证明本次范围内有明确声明，配置覆盖和运行时热更新仍按下述步骤核对。脚本支持 assets 中的 UTF-8 INI/properties/cfg/conf；JSON、资源引用、其他 DEX 类名或自定义渠道格式按缺项继续分析，不猜测。
+报告只显示 SDK key 的 `[REDACTED]`、状态与来源；真实值按来源在本地传给调用项目。`core_complete` 表示八项核心/双渠道字段均无缺项、歧义或冲突；两项 SDK 版本还需分别查看。`found` 证明本次范围内有明确声明，配置覆盖和运行时热更新仍按下述步骤核对。脚本支持 assets 中的 INI/properties/cfg/conf：按 ASCII 字段名和赋值语法逐行识别，命中的参数值严格按 UTF-8 解码，支持文件开头的 UTF-8 BOM。无关字段或注释使用旧编码不会影响参数判定；命中值解码失败时，对应字段标为 `ambiguous`。含 NUL 的文件（如 UTF-16）仍按无法完整读取处理。JSON、资源引用、其他 DEX 类名或自定义渠道格式按缺项继续分析，不猜测。
 
 候选配置、DEX 或渠道扩展损坏、重复或超出读取限制时，受影响字段标为 `ambiguous`（已有多值时仍为 `conflict`），即使其他来源有值也不宣称核实完整。缺少渠道扩展本身不算损坏。查看 `warnings` 和 `unresolved` 追查未覆盖来源；DEX 字符串按数据偏移去重，并限制累计缓存，超限按不可完整读取处理。
 

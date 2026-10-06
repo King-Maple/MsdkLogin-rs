@@ -155,4 +155,4 @@ Rust 测试覆盖两种渠道的本地 HTTP 流程、认证地址与签名、响
 
 统一脚本 `extract_core_params.py` 提取 `msdk_url`、`game_id`、SDK key 定位状态、`channel_dis`、包名、QQ／微信 AppID、签名证书 MD5，以及 MSDK／QQ SDK 版本。渠道支持 APK Signing Block 的 `0x71717874` 扩展；版本从对应 DEX 静态字段读取。配合 JDK 17+ 和 Android `apksig` JAR 验证签名、解析二进制 Manifest。具体命令与支持范围见 skill。
 
-报告记录参数来源、缺失、歧义和冲突；SDK key 始终脱敏，实际接入时按来源在本地读取并传入 Rust 配置。不同应用分别提取参数，地址与 SDK 版本以目标 APK 为准。原 `extract_public_params.py` 保留为可选的公开文本索引。
+报告记录参数来源、缺失、歧义和冲突；SDK key 始终脱敏，实际接入时按来源在本地读取并传入 Rust 配置。文本配置按字段逐行识别，无关内容的旧编码不会影响参数提取，参数值仍严格按 UTF-8 解码。不同应用分别提取参数，地址与 SDK 版本以目标 APK 为准。原 `extract_public_params.py` 保留为可选的公开文本索引。

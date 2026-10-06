@@ -165,6 +165,41 @@ class CoreExtractionTests(unittest.TestCase):
         self.assertEqual(report["fields"]["channel_dis"]["status"], "ambiguous")
         self.assertFalse(report["core_complete"])
 
+    def test_non_utf8_unrelated_properties_do_not_hide_core_declarations(self):
+        output = io.BytesIO()
+        with zipfile.ZipFile(output, "w") as archive:
+            archive.writestr("assets/MSDKConfig.ini", "MSDK_GAME_ID=777\n")
+            archive.writestr("assets/mono/browscap.ini",
+                             b"; Browser \xe2\n[UserAgent\xe2]\nBrowser=Name\xe2\n")
+            archive.writestr("assets/extra.properties",
+                             b"# Comment \xe2\nMSDK_CHANNEL_DIS=1001\n")
+        report, _ = self.run_apk(output.getvalue())
+        self.assertEqual(report["fields"]["game_id"]["status"], "found")
+        self.assertEqual(report["fields"]["channel_dis"]["status"], "found")
+        self.assertEqual(report["fields"]["channel_dis"]["values"][0]["value"], "1001")
+        self.assertNotIn("config_unreadable", report["warnings"])
+
+    def test_invalid_utf8_core_value_stays_ambiguous_without_leaking(self):
+        output = io.BytesIO()
+        with zipfile.ZipFile(output, "w") as archive:
+            archive.writestr("assets/MSDKConfig.ini", "MSDK_SDK_KEY=PRIVATE_SENTINEL\n")
+            archive.writestr("assets/override.properties",
+                             b"MSDK_SDK_KEY=PRIVATE_SENTINEL\xe2\nMSDK_GAME_ID=777\n")
+        report, rendered = self.run_apk(output.getvalue())
+        self.assertEqual(report["fields"]["sdk_key"]["status"], "ambiguous")
+        self.assertEqual(report["fields"]["game_id"]["status"], "found")
+        self.assertNotIn("PRIVATE_SENTINEL", rendered)
+        self.assertFalse(report["core_complete"])
+
+    def test_utf16_candidate_cannot_be_treated_as_unrelated_bytes(self):
+        output = io.BytesIO()
+        with zipfile.ZipFile(output, "w") as archive:
+            archive.writestr("assets/MSDKConfig.ini", "MSDK_GAME_ID=777\n")
+            archive.writestr("assets/override.ini", "MSDK_GAME_ID=888\n".encode("utf-16"))
+        report, _ = self.run_apk(output.getvalue())
+        self.assertEqual(report["fields"]["game_id"]["status"], "ambiguous")
+        self.assertFalse(report["core_complete"])
+
     def test_aliased_dex_strings_cannot_multiply_memory_usage(self):
         spec = importlib.util.spec_from_file_location("dex_versions_test", SCRIPTS / "dex_sdk_versions.py")
         module = importlib.util.module_from_spec(spec)
